@@ -1,6 +1,6 @@
 ---
 title: "ML Project"
-author: "Parker Rollins"
+author: "Parker Rollins & Vito MF Nash"
 date: "2023-11-16"
 output: html_document
 ---
@@ -8,15 +8,22 @@ Load in dataset and view summary statistics
 ```{r}
 library(ggplot2)
 
-total_data <- read.csv("C:/Users/proll/OneDrive/Documents/ML/Airline_Delay_Cause.csv", 
+delays <- read.csv("../data/Airline_Delay_Cause.csv", 
                        header=T, stringsAsFactors=T)
 
-summary(total_data)
+# list of major hubs
+airport_list <- c('ATL','DFW','DEN','ORD','LAX','JFK','LAS','MCO',
+                 'MIA','CLT','SEA','PHX','EWR','SFO','IAH','BOS',
+                 'FLL','MSP','LGA','DTW','PHL','SLC','DCA','SAN',
+                 'BWI','TPA','AUS','IAD','BNA','MDW','HNL')
 
 ```
-Remove NAs
+Remove NAs, reduce to specific airports
 ```{r}
-total_data <- na.omit(total_data)
+total_data <- na.omit(delays)
+# reduce to list of specified airports and get rid of carrier name
+total_data <- total_data[total_data$airport %in% airport_list,
+                         c(-4,-6)]
 ```
 
 New Data
@@ -25,20 +32,47 @@ summary(total_data)
 ```
 
 
-Which Month has the largest median number of baggage complaints?
+Histogram of delay complaints?
 ```{r}
-boxplot(total_data$carrier_delay~total_data$carrier_name)
-```
-Which Airline has the largest median number of baggage complaints?
-```{r}
-unique(total_data$carrier_name)
+# boxplot((total_data$arr_del15/max(total_data$arr_del15))~total_data$month, 
+        # data=total_data[total_data$year == 2022,])
+hist(total_data$arr_del15)
+# very skewed, let's add log transform
+total_data$log_arr_del15 <- log(total_data$arr_del15 + 1)
+hist(total_data$log_arr_del15)
 
+```
+Which Month has the largest median number of delays?
+```{r}
+boxplot(total_data$log_arr_del15~total_data$month,
+        data=total_data)
 
 ```
 Do Cancellations contribute to baggage complaints?
 ```{r}
-unique(large_carriers$carrier_name)
+library(dplyr)
+library(ggplot2)
+airport_summaries <- total_data %>% 
+  group_by(airport) %>% 
+  summarise(total_delays=sum(arr_del15),
+            .groups='drop') %>% 
+  as.data.frame()
 
-boxplot(large_carriers$carrier_delay~large_carriers$carrier_name)
+t10 <- head(arrange(airport_summaries, desc(total_delays)), n=10)
+t10$total_delays_1k <- t10$total_delays / 1000
+gg1 <- ggplot(data=t10, aes(x=airport, y=total_delays_1k)) +
+  geom_bar(stat='identity') +
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), # Remove grid
+      panel.grid.minor = element_blank(), # Remove grid
+      panel.border = element_blank(), # Remove grid
+      panel.background = element_blank()) + # Remove grid 
+  geom_bar(data=subset(t10, total_delays_1k==max(total_delays_1k)), aes(airport, total_delays_1k),
+              fill="red", stat="identity") +
+  labs(x='Airport', y='Total Delays (Thousands)', title='Top 10 Airports by Total Delays')
+gg1
+# unique(large_carriers$carrier_name)
+
+# boxplot(large_carriers$carrier_delay~large_carriers$carrier_name)
 ```
 
