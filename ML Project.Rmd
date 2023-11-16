@@ -1,0 +1,44 @@
+---
+title: "ML Project"
+author: "Parker Rollins"
+date: "2023-11-16"
+output: html_document
+---
+Load in dataset and view summary statistics
+```{r}
+library(ggplot2)
+
+total_data <- read.csv("C:/Users/proll/OneDrive/Documents/ML/Airline_Delay_Cause.csv", 
+                       header=T, stringsAsFactors=T)
+
+summary(total_data)
+
+```
+Remove NAs
+```{r}
+total_data <- na.omit(total_data)
+```
+
+New Data
+```{r}
+summary(total_data)
+```
+
+
+Which Month has the largest median number of baggage complaints?
+```{r}
+boxplot(total_data$carrier_delay~total_data$carrier_name)
+```
+Which Airline has the largest median number of baggage complaints?
+```{r}
+unique(total_data$carrier_name)
+
+
+```
+Do Cancellations contribute to baggage complaints?
+```{r}
+unique(large_carriers$carrier_name)
+
+boxplot(large_carriers$carrier_delay~large_carriers$carrier_name)
+```
+
