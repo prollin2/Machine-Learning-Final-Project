@@ -24,6 +24,8 @@ total_data <- na.omit(delays)
 # reduce to list of specified airports and get rid of carrier name
 total_data <- total_data[total_data$airport %in% airport_list,
                          c(-4,-6)]
+remove_levels <- levels(total_data$airport)[!levels(total_data$airport) %in% airport_list]
+total_data$airport <- droplevels(total_data$airport, remove_levels)
 ```
 
 New Data
@@ -71,8 +73,5 @@ gg1 <- ggplot(data=t10, aes(x=airport, y=total_delays_1k)) +
               fill="red", stat="identity") +
   labs(x='Airport', y='Total Delays (Thousands)', title='Top 10 Airports by Total Delays')
 gg1
-# unique(large_carriers$carrier_name)
-
-# boxplot(large_carriers$carrier_delay~large_carriers$carrier_name)
 ```
 
