@@ -26,6 +26,7 @@ total_data <- total_data[total_data$airport %in% airport_list,
                          c(-4,-6)]
 remove_levels <- levels(total_data$airport)[!levels(total_data$airport) %in% airport_list]
 total_data$airport <- droplevels(total_data$airport, remove_levels)
+
 ```
 
 New Data
@@ -74,4 +75,53 @@ gg1 <- ggplot(data=t10, aes(x=airport, y=total_delays_1k)) +
   labs(x='Airport', y='Total Delays (Thousands)', title='Top 10 Airports by Total Delays')
 gg1
 ```
+
+Train & Test Data
+```{r}
+set.seed(7)
+total_obs <- nrow(total_data)
+## Data Partition: Training v.s. Test split
+train_data_indices <- sample(1:total_obs, 0.6*total_obs)
+train_data <- total_data[train_data_indices,]
+test_data <- total_data[-train_data_indices,]
+# Record the size of training data and test data
+train_obs <- dim(train_data)
+```
+
+
+Dtrain/DTest
+```{r}
+dtrain <- xgb.DMatrix(data = as.matrix(train_data[, -c(3,4,5,20)]))
+# Create test matrix
+dtest <- xgb.DMatrix(data = as.matrix(test_data[, -c(3,4,5,20)]))
+```
+
+XG Boost
+```{r}
+set.seed(111111)
+
+bst_1 <- xgboost(data = dtrain, # Set training data
+
+               
+
+               nrounds = 100, # Set number of rounds
+
+               
+
+               verbose = 1, # 1 - Prints out fit
+
+                print_every_n = 20# Prints out result every 20th iteration
+
+ ) 
+```
+
+Creat Predictions
+```{r}
+boost_preds_1 <- predict(bst_1, dtest) # Create predictions for xgboost model
+
+```
+
+
+
+
 
