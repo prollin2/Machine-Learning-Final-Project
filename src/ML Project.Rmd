@@ -91,14 +91,15 @@ train_obs <- dim(train_data)
 
 Dtrain/DTest
 ```{r}
-dtrain <- xgb.DMatrix(data = as.matrix(train_data[, -c(3,4,5,20)]), label =  train_data$late_aircraft_delay)
+library(xgboost)
+dtrain <- xgb.DMatrix(data = as.matrix(train_data[, -c(3,4,5,20)]), label =  as.numeric(train_data$log_arr_del15))
 # Create test matrix
-dtest <- xgb.DMatrix(data = as.matrix(test_data[, -c(3,4,5,20)]), label = train_data$
+dtest <- xgb.DMatrix(data = as.matrix(test_data[, -c(3,4,5,20)]), label = as.numeric(test_data$log_arr_del15))
 ```
 
 XG Boost
 ```{r}
-set.seed(111111)
+set.seed(69420)
 
 bst_1 <- xgboost(data = dtrain, # Set training data
 
@@ -110,13 +111,15 @@ bst_1 <- xgboost(data = dtrain, # Set training data
 
                verbose = 1, # 1 - Prints out fit
 
-                print_every_n = 20# Prints out result every 20th iteration
+               print_every_n = 20# Prints out result every 20th iteration
 
  ) 
 ```
 
 Creat Predictions
 ```{r}
+
+
 boost_preds_1 <- predict(bst_1, dtest) # Create predictions for xgboost model
 
 ```
