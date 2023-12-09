@@ -63,7 +63,7 @@ Do Cancellations contribute to baggage complaints?
 ```{r}
 library(dplyr)
 library(ggplot2)
-airport_summaries <-  %>% 
+airport_summaries <- total_data %>% 
   group_by(airport) %>% 
   summarise(total_delays=sum(arr_del15),
             .groups='drop') %>% 
