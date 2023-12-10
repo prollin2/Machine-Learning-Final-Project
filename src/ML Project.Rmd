@@ -127,7 +127,6 @@ bst_1 <- xgboost(data = dtrain, # Set training data
  ) 
 ```
 
-Creat Predictions
 ```{r}
 set.seed(69420)
 # Be Careful - This can take a very long time to run
@@ -138,7 +137,7 @@ min_child_weight <- c(1,3,5,7, 10, 15) # Create vector of min child values
 cv_params <- expand.grid(max_depth_vals, min_child_weight)
 names(cv_params) <- c("max_depth", "min_child_weight")
 # Create results vector
-rmse_vec1  <- rep(NA, nrow(cv_params)) 
+rmse_vec  <- rep(NA, nrow(cv_params)) 
 # Loop through results
 for(i in 1:nrow(cv_params)){
   bst_tune <- xgb.cv(data = dtrain, # Set training data
@@ -155,7 +154,7 @@ for(i in 1:nrow(cv_params)){
                      
                      verbose = 1, # 1 - Prints out fit
                      nthread = 1, # Set number of parallel threads
-                     print_every_n = 20 # Prints out result every 20th iteration
+                     print_every_n = 100 # Prints out result every 20th iteration
                      
   ) # Set evaluation metric to use
   
@@ -214,7 +213,7 @@ for(i in 1:length(gamma_vals)){
                      
                      verbose = 1, # 1 - Prints out fit
                      nthread = 1, # Set number of parallel threads
-                     print_every_n = 20 # Prints out result every 20th iteration
+                     print_every_n = 100 # Prints out result every 20th iteration
   ) # Set evaluation metric to use
   
   
@@ -255,7 +254,7 @@ for(i in 1:nrow(cv_params)){
                      
                      verbose = 1, # 1 - Prints out fit
                      nthread = 1, # Set number of parallel threads
-                     print_every_n = 20 # Prints out result every 20th iteration
+                     print_every_n = 100 # Prints out result every 20th iteration
   ) # Set evaluation metric to use
   
   
@@ -460,7 +459,7 @@ xgb.plot.importance(imp_mat, top_n=10)
 ```{r}
 library(forecast)
 bst_final_preds <- exp(predict(bst_final, newdata=dtest)) - 1
-accuracy(bst_final_preds, test_data$arr_del15)
+accuracy(bst_final_preds, as.data.frame(test_data)$arr_del15)
 ```
 
 ```{r}
