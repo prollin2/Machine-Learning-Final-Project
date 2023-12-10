@@ -24,14 +24,13 @@ Remove NAs, reduce to specific airports
 ```{r}
 total_data <- na.omit(delays)
 # reduce to list of specified airports and get rid of carrier name
-# total_data <- total_data[total_data$airport %in% airport_list,WHAT WE HAD 
-                         # c(-4,-6)]
 
-total_data <- total_data[total_data$airport %in% airport_list, c(1,2,3,5,7,8)]
+total_data <- total_data[total_data$airport %in% airport_list, c(1,2,5,8)]
 remove_levels <- levels(total_data$airport)[!levels(total_data$airport) %in% airport_list]
 total_data$airport <- droplevels(total_data$airport, remove_levels)
+tota_data <- total_data %>% summarise(.by=c(year, month, airport, arr_del15))
+total_data$log_arr_del15 <- log(total_data$arr_del15 + 1)
 delays_data <- total_data
-total_data <- total_data %>% summarise(.by=c(year, month, airport, arr_flights, arr_del15))
 total_data <- model.matrix(~., data=total_data)[,-1]
 head(total_data)
 
@@ -63,7 +62,7 @@ Do Cancellations contribute to baggage complaints?
 ```{r}
 library(dplyr)
 library(ggplot2)
-airport_summaries <- total_data %>% 
+airport_summaries <- delays %>% 
   group_by(airport) %>% 
   summarise(total_delays=sum(arr_del15),
             .groups='drop') %>% 
@@ -90,8 +89,11 @@ set.seed(69420)
 total_obs <- nrow(total_data)
 ## Data Partition: Training v.s. Test split
 train_data_indices <- sample(1:total_obs, 0.8*total_obs)
-train_data <- total_data[train_data_indices,]
-test_data <- total_data[-train_data_indices,]
+train_data <- total_data[train_data_indices, ]
+delays_train_data <- delays_data[train_data_indices, ]
+
+test_data <- total_data[-train_data_indices, ]
+delays_test_data <- delays_data[-train_data_indices, ]
 # Record the size of training data and test data
 train_obs <- dim(train_data)
 ```
@@ -100,9 +102,9 @@ train_obs <- dim(train_data)
 Dtrain/DTest
 ```{r}
 library(xgboost)
-dtrain <- xgb.DMatrix(data = as.matrix(train_data[, -c(3, 4, 6)]), label =  as.numeric(train_data$log_arr_del15))
+dtrain <- xgb.DMatrix(data = train_data[,-c(33, 34)], label =  as.numeric(train_data[,34]))
 # Create test matrix
-dtest <- xgb.DMatrix(data = as.matrix(test_data[, -c(3, 4, 6)]), label = as.numeric(test_data$log_arr_del15))
+dtest <- xgb.DMatrix(data = test_data[,-c(33, 34)], label = as.numeric(test_data[,34]))
 ```
 
 
@@ -161,24 +163,23 @@ for(i in 1:nrow(cv_params)){
   
   
 }
-# boost_preds_1 <- predict(bst_1, dtest) # Create predictions for xgboost model
 
 ```
 
 ```{r}
 
 res_db1 <- cbind.data.frame(cv_params, rmse_vec)
-names(res_db)[3] <- c("rmse") 
-res_db$max_depth <- as.factor(res_db$max_depth) # Convert tree number to factor for plotting
-res_db$min_child_weight <- as.factor(res_db$min_child_weight) # Convert node size to factor for plotting
+names(res_db1)[3] <- c("rmse") 
+res_db1$max_depth <- as.factor(res_db1$max_depth) # Convert tree number to factor for plotting
+res_db1$min_child_weight <- as.factor(res_db1$min_child_weight) # Convert node size to factor for plotting
 # Print AUC heatmap
-g_2 <- ggplot(res_db, aes(y = max_depth, x = min_child_weight, fill = rmse)) + # set aesthetics
+g_2 <- ggplot(res_db1, aes(y = max_depth, x = min_child_weight, fill = rmse)) + # set aesthetics
   geom_tile() + # Use geom_tile for heatmap
   theme_bw() + # Set theme
   scale_fill_gradient2(low = "blue", # Choose low color
                        mid = "white", # Choose mid color
                        high = "red", # Choose high color
-                       midpoint =mean(res_db$rmse), # Choose mid point
+                       midpoint =mean(res_db1$rmse), # Choose mid point
                        space = "Lab", 
                        na.value ="grey", # Choose NA value
                        guide = "colourbar", # Set color bar
@@ -186,7 +187,7 @@ g_2 <- ggplot(res_db, aes(y = max_depth, x = min_child_weight, fill = rmse)) + #
   labs(x = "Minimum Child Weight", y = "Max Depth", fill = "RMSE") # Set labels
 g_2 # Generate plot
 
-res_db1[which.min(res_db$rmse),]
+res_db1[which.min(res_db1$rmse),]
 ```
 
 ```{r}
@@ -265,16 +266,16 @@ for(i in 1:nrow(cv_params)){
 ```{r}
 
 res_db2 <- cbind.data.frame(cv_params, rmse_vec)
-names(res_db)[3] <- c("rmse") 
-res_db$subsample <- as.factor(res_db$subsample) # Convert tree number to factor for plotting
-res_db$colsample_by_tree <- as.factor(res_db$colsample_by_tree) # Convert node size to factor for plotting
-g_4 <- ggplot(res_db, aes(y = colsample_by_tree, x = subsample, fill = rmse)) + # set aesthetics
+names(res_db2)[3] <- c("rmse") 
+res_db2$subsample <- as.factor(res_db2$subsample) # Convert tree number to factor for plotting
+res_db2$colsample_by_tree <- as.factor(res_db2$colsample_by_tree) # Convert node size to factor for plotting
+g_4 <- ggplot(res_db2, aes(y = colsample_by_tree, x = subsample, fill = rmse)) + # set aesthetics
   geom_tile() + # Use geom_tile for heatmap
   theme_bw() + # Set theme
   scale_fill_gradient2(low = "blue", # Choose low color
                        mid = "white", # Choose mid color
                        high = "red", # Choose high color
-                       midpoint =mean(res_db$rmse), # Choose mid point
+                       midpoint =mean(res_db2$rmse), # Choose mid point
                        space = "Lab", 
                        na.value ="grey", # Choose NA value
                        guide = "colourbar", # Set color bar
@@ -425,6 +426,9 @@ g_7 <- ggplot(plot_data, aes(x = iter, y = test_rmse_mean, color = eta))+
        y = "RMSE", color = "Learning \n Rate")  # Set labels
 g_7
 ```
+
+
+
 ```{r}
 
 bst_final <- xgboost(data = dtrain, # Set training data
@@ -432,12 +436,12 @@ bst_final <- xgboost(data = dtrain, # Set training data
                      
                      
                      eta = .05, # Set learning rate
-                     max.depth = res_db1[which.min(res_db$rmse),]$max_depth
+                     max.depth = res_db1[which.min(res_db1$rmse),]$max_depth
 , # Set max depth
-                     min_child_weight = res_db1[which.min(res_db$rmse),]$min_child_weight, # Set minimum number of samples in node to split
+                     min_child_weight = res_db1[which.min(res_db1$rmse),]$min_child_weight, # Set minimum number of samples in node to split
                      gamma = gamma_rmse[which.min(gamma_rmse$rmse_vec),]$gamma_vals, # Set minimum loss reduction for split
-                     subsample = res_db2[which.min(res_db2$rmse_vec),]$subsample, # Set proportion of training data to use in tree
-                     colsample_bytree = res_db2[which.min(res_db2$rmse_vec),]$colsample_by_tree, # Set number of variables to use in each tree
+                     subsample = res_db2[which.min(res_db2$rmse),]$subsample, # Set proportion of training data to use in tree
+                     colsample_bytree = res_db2[which.min(res_db2$rmse),]$colsample_by_tree, # Set number of variables to use in each tree
                      
                      nrounds = 140, # Set number of rounds
                      early_stopping_rounds = 50, # Set number of rounds to stop at if there is no improvement
@@ -476,8 +480,26 @@ library(splitstackshape) # Used for stratified sampling
 
 ```{r}
 tree_1 <- rpart(log_arr_del15 ~., # Set tree formula
-data = total_data[,-6]) # Set dataset
+data = as.data.frame(train_data[,-33])) # Set dataset
 fancyRpartPlot(tree_1) # Plot fancy tree
+
+```
+
+```{r}
+library(forecast)
+# Create a dataframe with years, months, airport codes, and another number column
+years <- rep(2023, each = 12)  # Repeat the year for each month
+months <- rep(1:12, length.out = length(airport_list))  # Repeat months for each airport
+airport_codes <- rep(airport_list, each = 12)  # Repeat each airport code for all months
+
+
+future <- data.frame(year = years, month = months, airport = airport_codes)
+future$airport <- factor(future$airport)
+future_dummy <- model.matrix(~., future)[,-1]
+
+tree_preds <- exp(predict(tree_1, newdata=as.data.frame(test_data))) + 1
+poo <- cbind(delays_test_data, tree_preds)
+accuracy(tree_preds, test_data[33])
 
 ```
 
